@@ -1,0 +1,49 @@
+name: Nueva Funcionalidad
+description: Proponer una nueva feature o mejora
+title: "[FEATURE]: "
+labels: ["type:feature"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área afectada
+      options:
+        - AGORA
+        - FARO
+        - Infra
+    validations:
+      required: true
+  - type: dropdown
+    id: asignado
+    attributes:
+      label: Responsable sugerido
+      options:
+        - Felipe
+        - Lucía
+        - Stefano
+        - Sin asignar todavía
+    validations:
+      required: false
+  - type: textarea
+    id: descripcion
+    attributes:
+      label: Descripción de la funcionalidad
+    validations:
+      required: true
+  - type: textarea
+    id: motivo
+    attributes:
+      label: ¿Por qué es necesaria?
+    validations:
+      required: true
+  - type: dropdown
+    id: prioridad
+    attributes:
+      label: Prioridad
+      options:
+        - Crítica
+        - Alta
+        - Media
+        - Baja
+    validations:
+      required: true
