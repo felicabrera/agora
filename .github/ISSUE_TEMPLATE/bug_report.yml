@@ -1,0 +1,60 @@
+name: Reporte de Bug
+description: Algo no está funcionando como debería
+title: "[BUG]: "
+labels: ["type:bug"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área afectada
+      options:
+        - AGORA
+        - FARO
+        - Infra
+    validations:
+      required: true
+  - type: dropdown
+    id: asignado
+    attributes:
+      label: Responsable sugerido
+      options:
+        - Felipe
+        - Lucía
+        - Stefano
+        - Sin asignar todavía
+    validations:
+      required: false
+  - type: textarea
+    id: que-paso
+    attributes:
+      label: ¿Qué pasó?
+      description: Describí el problema con claridad
+    validations:
+      required: true
+  - type: textarea
+    id: esperado
+    attributes:
+      label: ¿Qué esperabas que pasara?
+    validations:
+      required: true
+  - type: textarea
+    id: pasos
+    attributes:
+      label: Pasos para reproducir
+      placeholder: |
+        1. Ir a...
+        2. Hacer click en...
+        3. Ver error
+    validations:
+      required: false
+  - type: dropdown
+    id: severidad
+    attributes:
+      label: Severidad
+      options:
+        - Crítico
+        - Alto
+        - Medio
+        - Bajo
+    validations:
+      required: true
