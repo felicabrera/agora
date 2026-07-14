@@ -1,0 +1,61 @@
+name: Go CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+  push:
+    branches: [develop, main]
+    paths:
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Lint (golangci-lint)
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+
+      - name: Test con race detector + coverage
+        run: go test ./... -race -coverprofile=coverage.out -covermode=atomic
+
+      - name: Coverage report
+        run: go tool cover -func=coverage.out
+
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: gosec (análisis de seguridad estático)
+        uses: securego/gosec@master
+        with:
+          args: './...'
+
+      - name: govulncheck (vulnerabilidades conocidas en dependencias)
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
