@@ -1,0 +1,41 @@
+name: Tarea
+description: Tarea técnica, refactor, mantenimiento o algo sin código
+title: "[TASK]: "
+labels: ["type:task"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área afectada
+      options:
+        - AGORA
+        - FARO
+        - Infra
+    validations:
+      required: true
+  - type: dropdown
+    id: asignado
+    attributes:
+      label: Responsable sugerido
+      options:
+        - Felipe
+        - Lucía
+        - Stefano
+        - Sin asignar todavía
+    validations:
+      required: false
+  - type: textarea
+    id: descripcion
+    attributes:
+      label: Descripción de la tarea
+    validations:
+      required: true
+  - type: textarea
+    id: subtareas
+    attributes:
+      label: Checklist de sub-tareas
+      placeholder: |
+        - [ ] Paso 1
+        - [ ] Paso 2
+    validations:
+      required: false
