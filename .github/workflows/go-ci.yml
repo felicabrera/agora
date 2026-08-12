@@ -1,18 +1,18 @@
 name: Go CI
 
+# Sin filtros `paths:`. Un job filtrado por `paths` nunca reporta conclusión en
+# los PRs que no tocan esos archivos, y si se lo exige como status check
+# obligatorio el PR queda bloqueado para siempre. En su lugar el job siempre
+# corre y detecta internamente si hay código Go: si no lo hay, reporta éxito
+# sin ejecutar nada.
 on:
   pull_request:
     branches: [develop, main]
-    paths:
-      - '**/*.go'
-      - 'go.mod'
-      - 'go.sum'
   push:
     branches: [develop, main]
-    paths:
-      - '**/*.go'
-      - 'go.mod'
-      - 'go.sum'
+
+permissions:
+  contents: read
 
 jobs:
   lint-and-test:
@@ -20,24 +20,39 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Detectar código Go
+        id: detect
+        run: |
+          if [ -f go.mod ] || [ -n "$(find . -name '*.go' -not -path './.git/*' -print -quit)" ]; then
+            echo "has_go=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_go=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No se encontró código Go en el repositorio; el job reporta éxito sin ejecutar análisis."
+          fi
+
       - name: Setup Go
+        if: steps.detect.outputs.has_go == 'true'
         uses: actions/setup-go@v5
         with:
           go-version: '1.22'
-          cache: true
+          cache: ${{ hashFiles('**/go.sum') != '' }}
 
       - name: Vet
+        if: steps.detect.outputs.has_go == 'true'
         run: go vet ./...
 
       - name: Lint (golangci-lint)
+        if: steps.detect.outputs.has_go == 'true'
         uses: golangci/golangci-lint-action@v6
         with:
           version: latest
 
       - name: Test con race detector + coverage
+        if: steps.detect.outputs.has_go == 'true'
         run: go test ./... -race -coverprofile=coverage.out -covermode=atomic
 
       - name: Coverage report
+        if: steps.detect.outputs.has_go == 'true'
         run: go tool cover -func=coverage.out
 
   security-scan:
@@ -45,17 +60,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Detectar código Go
+        id: detect
+        run: |
+          if [ -f go.mod ] || [ -n "$(find . -name '*.go' -not -path './.git/*' -print -quit)" ]; then
+            echo "has_go=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_go=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No se encontró código Go en el repositorio; el job reporta éxito sin ejecutar análisis."
+          fi
+
       - name: Setup Go
+        if: steps.detect.outputs.has_go == 'true'
         uses: actions/setup-go@v5
         with:
           go-version: '1.22'
 
       - name: gosec (análisis de seguridad estático)
-        uses: securego/gosec@master
+        if: steps.detect.outputs.has_go == 'true'
+        uses: securego/gosec@v2.28.0
         with:
           args: './...'
 
       - name: govulncheck (vulnerabilidades conocidas en dependencias)
+        if: steps.detect.outputs.has_go == 'true'
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
           govulncheck ./...

@@ -1,0 +1,47 @@
+# Dependabot — actualizaciones de versión.
+#
+# Las actualizaciones *de seguridad* no se configuran acá: ya están habilitadas
+# a nivel de repositorio (Dependabot alerts + automated security fixes) y se
+# disparan solas cuando aparece un advisory que afecta al proyecto.
+#
+# Hoy el repositorio solo contiene workflows de GitHub Actions, así que ese es
+# el único ecosistema activo. Declarar `gomod` o `npm` sin su manifiesto
+# presente hace que Dependabot falle en cada corrida. Descomentar los bloques
+# correspondientes cuando el código aterrice, y ajustar `directory` si el
+# frontend Next.js vive en un subdirectorio (por ejemplo `/web`).
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels: ["dependencies", "ci"]
+    commit-message:
+      prefix: "chore(ci)"
+
+  # - package-ecosystem: "gomod"
+  #   directory: "/"
+  #   schedule:
+  #     interval: "weekly"
+  #     day: "monday"
+  #   open-pull-requests-limit: 10
+  #   labels: ["dependencies", "go"]
+  #   groups:
+  #     go-minor-patch:
+  #       update-types: ["minor", "patch"]
+  #   commit-message:
+  #     prefix: "chore(deps)"
+
+  # - package-ecosystem: "npm"
+  #   directory: "/web"
+  #   schedule:
+  #     interval: "weekly"
+  #     day: "monday"
+  #   open-pull-requests-limit: 10
+  #   labels: ["dependencies", "javascript"]
+  #   groups:
+  #     npm-minor-patch:
+  #       update-types: ["minor", "patch"]
+  #   commit-message:
+  #     prefix: "chore(deps)"
