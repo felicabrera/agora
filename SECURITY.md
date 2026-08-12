@@ -37,8 +37,7 @@ arreglo disponible.
   correspondencia entre votos emitidos y votos contados.
 - Integridad del log de transparencia FARO y su verificación desde ÁGORA.
 - Autenticación de votantes, autorización, manejo de sesiones y tokens.
-- API, CLI de auditoría, frontend Next.js y configuración de infraestructura
-  y CI/CD.
+- API del sistema de voto y configuración de infraestructura y CI/CD.
 
 **Fuera de alcance**
 
@@ -88,7 +87,7 @@ key generation); information leakage about vote plaintext (side channels,
 non-constant-time operations, weak randomness, missing validation of curve
 points); tally integrity; FARO transparency log integrity and its verification
 from ÁGORA; voter authentication, authorization, session and token handling;
-the API, audit CLI, Next.js frontend, and infrastructure/CI-CD configuration.
+the voting system API, and infrastructure/CI-CD configuration.
 
 **Out of scope:** third-party dependency issues with no demonstrated exploit
 path in this project, volumetric denial of service, unanalyzed automated
