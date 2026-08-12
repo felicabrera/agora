@@ -1,0 +1,46 @@
+name: zizmor
+
+# Static security analysis of the GitHub Actions workflows themselves. This
+# complements CodeQL's `actions` analysis rather than duplicating it: they catch
+# different classes of workflow weakness.
+#
+# The job always runs and always reports a conclusion, so it is safe to require
+# as a mandatory status check. Workflow files always exist in this repository,
+# so there is no "nothing to scan" case to guard against.
+#
+# SARIF results are only uploaded on push. Pull requests opened by Dependabot
+# receive a read-only GITHUB_TOKEN regardless of the permissions block below, so
+# uploading to the security tab from a PR would fail and block the merge. On
+# pull requests the findings are emitted as inline annotations instead, and the
+# job still fails when zizmor finds something.
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+  schedule:
+    - cron: '23 4 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  zizmor:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Run zizmor
+        uses: zizmorcore/zizmor-action@3dc1ecc9bcb9e94e9b2c709687979e1298497054 # v0.6.2
+        with:
+          version: 1.29.0
+          persona: regular
+          # advanced-security and annotations are mutually exclusive.
+          advanced-security: ${{ github.event_name == 'push' }}
+          annotations: ${{ github.event_name != 'push' }}

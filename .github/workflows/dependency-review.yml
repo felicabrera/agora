@@ -1,0 +1,54 @@
+name: Dependency Review
+
+# Blocks a pull request that introduces a dependency with a known vulnerability,
+# at PR time rather than after merge. Dependabot alerts tell you once the code is
+# already on the default branch; this stops it landing in the first place.
+#
+# Same discipline as the other jobs: no `paths:` filters, and the job always
+# reports a conclusion so it is safe to require as a mandatory status check. It
+# detects internally whether any dependency manifest exists. Until Go or npm
+# code lands there is nothing to diff, and the job reports success without
+# calling the dependency review API.
+on:
+  pull_request:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Detect dependency manifests
+        id: detect
+        run: |
+          if [ -f go.mod ] || [ -n "$(find . \( -name 'package.json' -o -name 'requirements.txt' -o -name 'pyproject.toml' \) -not -path './.git/*' -not -path '*/node_modules/*' -print -quit)" ]; then
+            echo "has_deps=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_deps=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No dependency manifests found; the job reports success without running dependency review."
+          fi
+
+      - name: Dependency review
+        if: steps.detect.outputs.has_deps == 'true'
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+          # Licence policy is deliberately not configured yet.
+          #
+          # This project is AGPL-3.0, so a dependency under an incompatible
+          # licence is a real defect and not just a legal footnote. But
+          # compatibility is genuinely case by case, and a wrong deny list on a
+          # blocking check would either stop legitimate work or give false
+          # confidence. Decide this once real dependencies exist, with the
+          # actual list in front of you, then add one of:
+          #
+          #   deny-licenses: <SPDX ids that cannot combine with AGPL-3.0>
+          #   allow-licenses: <SPDX ids explicitly cleared>
+          #
+          # The two are mutually exclusive; setting both is an error.
