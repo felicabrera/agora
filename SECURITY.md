@@ -19,8 +19,8 @@ arreglo disponible.
 
 - **Acuse de recibo:** dentro de las 72 horas.
 - **Plan de resolución:** dentro de los 7 días desde el acuse de recibo.
-- **Divulgación coordinada:** esperamos poder publicar el arreglo antes de
-  cualquier divulgación pública. Si el reporte es válido, damos crédito
+- **Divulgación coordinada:** se espera que nos permitas publicar el arreglo
+  antes de cualquier divulgación pública. Si el reporte es válido, damos crédito
   público al reportante salvo que prefiera permanecer anónimo.
 
 ## Alcance
