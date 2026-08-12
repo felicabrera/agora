@@ -1,15 +1,15 @@
 name: Go CI
 
-# Sin filtros `paths:`. Un job filtrado por `paths` nunca reporta conclusión en
-# los PRs que no tocan esos archivos, y si se lo exige como status check
-# obligatorio el PR queda bloqueado para siempre. En su lugar el job siempre
-# corre y detecta internamente si hay código Go: si no lo hay, reporta éxito
-# sin ejecutar nada.
+# No `paths:` filters. A job filtered by `paths` never reports a conclusion on
+# PRs that do not touch those files, so requiring it as a mandatory status check
+# would block the PR forever. Instead the job always runs and detects internally
+# whether there is Go code. If there is none, it reports success without running
+# any analysis.
 #
-# Las acciones de terceros se fijan por SHA de commit, no por tag: un tag es
-# una referencia mutable y puede reapuntarse a otro código. En un proyecto cuyo
-# argumento central es la integridad verificable, el pipeline que produce los
-# artefactos tiene que ser reproducible. El tag legible va como comentario.
+# Third-party actions are pinned by commit SHA rather than by tag. A tag is a
+# mutable reference and can be repointed at different code. In a project whose
+# central argument is verifiable integrity, the pipeline that produces the
+# artifacts has to be reproducible. The readable tag is kept as a comment.
 on:
   pull_request:
     branches: [develop, main]
@@ -29,14 +29,14 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - name: Detectar código Go
+      - name: Detect Go code
         id: detect
         run: |
           if [ -f go.mod ] || [ -n "$(find . -name '*.go' -not -path './.git/*' -print -quit)" ]; then
             echo "has_go=true" >> "$GITHUB_OUTPUT"
           else
             echo "has_go=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::No se encontró código Go en el repositorio; el job reporta éxito sin ejecutar análisis."
+            echo "::notice::No Go code found in the repository; the job reports success without running analysis."
           fi
 
       - name: Setup Go
@@ -56,7 +56,7 @@ jobs:
         with:
           version: ${{ env.GOLANGCI_LINT_VERSION }}
 
-      - name: Test con race detector + coverage
+      - name: Test with race detector and coverage
         if: steps.detect.outputs.has_go == 'true'
         run: go test ./... -race -coverprofile=coverage.out -covermode=atomic
 
@@ -69,14 +69,14 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - name: Detectar código Go
+      - name: Detect Go code
         id: detect
         run: |
           if [ -f go.mod ] || [ -n "$(find . -name '*.go' -not -path './.git/*' -print -quit)" ]; then
             echo "has_go=true" >> "$GITHUB_OUTPUT"
           else
             echo "has_go=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::No se encontró código Go en el repositorio; el job reporta éxito sin ejecutar análisis."
+            echo "::notice::No Go code found in the repository; the job reports success without running analysis."
           fi
 
       - name: Setup Go
@@ -85,13 +85,13 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: gosec (análisis de seguridad estático)
+      - name: gosec (static security analysis)
         if: steps.detect.outputs.has_go == 'true'
         uses: securego/gosec@9e75c0576c9878035d4221392108d458abe10fc3 # v2.28.0
         with:
           args: './...'
 
-      - name: govulncheck (vulnerabilidades conocidas en dependencias)
+      - name: govulncheck (known vulnerabilities in dependencies)
         if: steps.detect.outputs.has_go == 'true'
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}

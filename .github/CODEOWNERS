@@ -1,31 +1,30 @@
-# CODEOWNERS — ÁGORA
+# CODEOWNERS for ÁGORA
 #
-# El ruleset `protect-def-branches` tiene activado `require_code_owner_review`,
-# así que toda ruta listada acá exige la aprobación de al menos uno de sus
-# owners antes del merge. Como el autor de un PR no puede aprobarse a sí mismo,
-# tener a los tres integrantes como owners garantiza que siempre queden dos
-# revisores posibles para cualquier cambio.
+# The `protect-def-branches` ruleset has `require_code_owner_review` enabled, so
+# every path listed here requires approval from at least one of its owners
+# before merging. Since a PR author cannot approve their own PR, having all
+# three team members as owners guarantees there are always two possible
+# reviewers for any change.
 #
-# Los tres integrantes son owners en igualdad de condiciones sobre todo el
-# repositorio. Las rutas de abajo no restringen la propiedad: están listadas
-# explícitamente para marcar dónde el impacto de un error es mayor y dónde la
-# revisión tiene que ser más exigente.
+# All three members are owners on equal terms across the whole repository. The
+# paths below do not restrict ownership. They are listed explicitly to mark
+# where the impact of a mistake is highest and review needs to be stricter.
 
-# Owners por defecto de todo el repositorio.
+# Default owners for the whole repository.
 *                       @felicabrera @Stefano936 @Luciavazquez01
 
-# --- Áreas de alto riesgo -------------------------------------------------
-# Núcleo criptográfico: ElGamal, ZKP (Schnorr/Bulletproofs), threshold
-# decryption y generación distribuida de claves. Un error acá puede romper el
-# secreto del voto o la integridad del escrutinio.
+# --- High risk areas ------------------------------------------------------
+# Cryptographic core: ElGamal, ZKP (Schnorr/Bulletproofs), threshold decryption
+# and distributed key generation. A mistake here can break ballot secrecy or
+# tally integrity.
 /crypto/                @felicabrera @Stefano936 @Luciavazquez01
 /internal/crypto/       @felicabrera @Stefano936 @Luciavazquez01
 
-# Integración con el log de transparencia FARO.
+# Integration with the FARO transparency log.
 /faro/                  @felicabrera @Stefano936 @Luciavazquez01
 /internal/faro/         @felicabrera @Stefano936 @Luciavazquez01
 
-# Configuración de seguridad, CI/CD y gobernanza del repositorio.
+# Security, CI/CD and repository governance configuration.
 /.github/               @felicabrera @Stefano936 @Luciavazquez01
 /SECURITY.md            @felicabrera @Stefano936 @Luciavazquez01
 /.coderabbit.yaml       @felicabrera @Stefano936 @Luciavazquez01

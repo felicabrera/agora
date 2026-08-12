@@ -1,14 +1,14 @@
-# Dependabot — actualizaciones de versión.
+# Dependabot version updates.
 #
-# Las actualizaciones *de seguridad* no se configuran acá: ya están habilitadas
-# a nivel de repositorio (Dependabot alerts + automated security fixes) y se
-# disparan solas cuando aparece un advisory que afecta al proyecto.
+# Security updates are not configured here. They are already enabled at
+# repository level (Dependabot alerts plus automated security fixes) and fire on
+# their own whenever an advisory affects the project.
 #
-# Hoy el repositorio solo contiene workflows de GitHub Actions, así que ese es
-# el único ecosistema activo. Declarar `gomod` o `npm` sin su manifiesto
-# presente hace que Dependabot falle en cada corrida. Descomentar los bloques
-# correspondientes cuando el código aterrice, y ajustar `directory` si el
-# frontend Next.js vive en un subdirectorio (por ejemplo `/web`).
+# Today the repository only contains GitHub Actions workflows, so that is the
+# only active ecosystem. Declaring `gomod` or `npm` without their manifest
+# present makes Dependabot fail on every run. Uncomment the blocks below once
+# the code lands, and adjust `directory` if the Next.js frontend lives in a
+# subdirectory such as `/web`.
 version: 2
 updates:
   - package-ecosystem: "github-actions"
