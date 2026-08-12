@@ -16,6 +16,17 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
+    # Do not accept a brand new release the moment it is published. A
+    # compromised package is usually caught within days, and this window lets
+    # that happen before the update reaches a PR here. Security updates are
+    # explicitly exempt from cooldown, so vulnerability fixes still arrive
+    # immediately.
+    #
+    # Only `default-days` is valid for the github-actions ecosystem. The
+    # `semver-*-days` keys are rejected here and are only accepted by
+    # semver-aware ecosystems such as gomod and npm.
+    cooldown:
+      default-days: 7
     labels: ["dependencies", "ci"]
     commit-message:
       prefix: "chore(ci)"
