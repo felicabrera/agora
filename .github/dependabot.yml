@@ -16,6 +16,14 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
+    # Do not accept a brand new release the moment it is published. A
+    # compromised package is usually caught within days, and this window lets
+    # that happen before the update reaches a PR here. Security updates are
+    # explicitly exempt from cooldown, so vulnerability fixes still arrive
+    # immediately.
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
     labels: ["dependencies", "ci"]
     commit-message:
       prefix: "chore(ci)"
