@@ -9,13 +9,23 @@
 // Lagrange interpolation "in the exponent" recombines them into x*A, after which
 // the plaintext point is B - x*A. No authority ever reconstructs x.
 //
-// This uses a trusted dealer: the polynomial is sampled in one place at setup,
-// which means whoever runs the dealer briefly holds x. That is acceptable for
-// ÁGORA Lite, where the organisation already administers its own election, but
-// it is the weakest link in the threshold story and it is stated plainly here
-// rather than buried. A dealerless distributed key generation (Pedersen, "A
-// Threshold Cryptosystem without a Trusted Party", EUROCRYPT '91) removes the
-// assumption and is the intended upgrade for ÁGORA Pro.
+// Two limitations are load-bearing and are stated here rather than discovered
+// later.
+//
+// No proof of correct decryption. A partial decryption D_i is accepted on the
+// authority's word. A malicious or faulty authority can submit a D_i that is not
+// x_i·A, and Combine will fold it in and produce a wrong plaintext point with no
+// indication that anything went wrong. Making this detectable needs each
+// authority to publish a Chaum-Pedersen proof that log_G(Y_i) = log_A(D_i),
+// verified before combining. That is required before any real election and is
+// not implemented here.
+//
+// Trusted dealer. The polynomial is sampled in one place at setup, which means
+// whoever runs the dealer briefly holds x. That is tolerable for ÁGORA Lite,
+// where the organisation already administers its own election, but it is the
+// weakest link in the threshold story. A dealerless distributed key generation
+// (Pedersen, "A Threshold Cryptosystem without a Trusted Party", EUROCRYPT '91)
+// removes the assumption and is the intended upgrade for ÁGORA Pro.
 package threshold
 
 import (
@@ -97,6 +107,11 @@ func (s Share) PartialDecrypt(A group.Element) PartialDecryption {
 // the interpolation set `indices`:
 //
 //	λ_i = Π_{j≠i} (0 - j)/(i - j)
+//
+// The caller must have validated that indices are distinct and non-zero. With a
+// repeated index the denominator picks up a zero factor, and ristretto255
+// defines the inverse of zero as zero rather than an error, so the result would
+// be silently wrong instead of failing. Combine performs that validation.
 func lagrangeAtZero(g group.Group, indices []uint64, i uint64) group.Scalar {
 	num := g.ScalarFromUint64(1)
 	den := g.ScalarFromUint64(1)
@@ -118,15 +133,43 @@ func lagrangeAtZero(g group.Group, indices []uint64, i uint64) group.Scalar {
 //	Σ_i λ_i · D_i = Σ_i λ_i · x_i · A = f(0)·A = x·A
 //
 // The caller then recovers the plaintext point as B - Combine(...).
-func Combine(g group.Group, partials []PartialDecryption) group.Element {
+//
+// Why this validates its input rather than trusting it. Lagrange interpolation
+// is only defined over distinct, non-zero indices, and neither violation is
+// self-announcing. A repeated index puts a zero factor in the denominator, and
+// because ristretto255 defines the inverse of zero as zero, the function would
+// return a well-formed group element that is simply the wrong answer. Index 0 is
+// worse: f(0) is the secret itself, so accepting it would mean accepting a share
+// that was never supposed to be handed out.
+//
+// A silently wrong result here is a wrong election result, published with
+// proofs, that nobody can distinguish from a correct one. Duplicate submissions
+// are also exactly what a coordination bug or a malicious authority produces, so
+// this is a realistic input and not a theoretical one.
+func Combine(g group.Group, partials []PartialDecryption) (group.Element, error) {
+	if len(partials) == 0 {
+		return nil, fmt.Errorf("threshold: no partial decryptions to combine")
+	}
 	indices := make([]uint64, len(partials))
+	seen := make(map[uint64]struct{}, len(partials))
 	for k, p := range partials {
+		if p.Index == 0 {
+			return nil, fmt.Errorf("threshold: partial decryption %d has index 0, which is the secret itself", k)
+		}
+		if p.D == nil {
+			return nil, fmt.Errorf("threshold: partial decryption for index %d is missing its value", p.Index)
+		}
+		if _, dup := seen[p.Index]; dup {
+			return nil, fmt.Errorf("threshold: authority %d submitted more than one partial decryption", p.Index)
+		}
+		seen[p.Index] = struct{}{}
 		indices[k] = p.Index
 	}
+
 	acc := g.Identity()
 	for _, p := range partials {
 		lambda := lagrangeAtZero(g, indices, p.Index)
 		acc = acc.Add(p.D.ScalarMul(lambda))
 	}
-	return acc
+	return acc, nil
 }

@@ -57,12 +57,12 @@ linters:
           # crypto/group carry inline comments, and requiring a doc block on each
           # would push the mathematics off the line it describes.
         - name: package-comments
-    gosec:
-      excludes:
-        # G115 (integer overflow on conversion) fires on conversions that are
-        # already bounds-checked at the call site. Re-enable and audit case by
-        # case if it stops being noise.
-        - G115
+    # gosec runs with its full rule set. G115 (integer overflow on conversion)
+    # is noisy on loop counters that are already bounded, but suppressing it
+    # repository-wide in a project that parses untrusted ballots would also hide
+    # the conversions that matter. Suppress it at the specific line instead,
+    # with `//nolint:gosec // <reason>` and a reason that says why the value is
+    # bounded.
 
   exclusions:
     rules:

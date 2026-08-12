@@ -6,3 +6,10 @@ docs
 !README.md
 coverage.out
 .env
+
+# Election key material. .gitignore keeps these out of git, but `COPY . .` in the
+# Dockerfile reads the working tree, not the index, so an untracked local key
+# would otherwise be copied into the build context and cached by the daemon.
+*.pem
+*.key
+trustees*.json

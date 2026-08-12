@@ -6,6 +6,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -26,12 +27,29 @@ type Config struct {
 }
 
 // Load reads the configuration from the environment and applies defaults.
+//
+// A malformed value is an error, not a fallback. Silently substituting the
+// default for an unparseable timeout means an operator who typed `30` instead of
+// `30s` gets a server that looks configured and is not, and the only symptom is
+// behaviour they did not ask for.
 func Load() (*Config, error) {
+	var errs []error
+	pick := func(key string, def time.Duration) time.Duration {
+		d, err := envDuration(key, def)
+		if err != nil {
+			errs = append(errs, err)
+		}
+		return d
+	}
+
 	c := &Config{
 		Addr:              env("AGORA_ADDR", ":8080"),
-		ReadHeaderTimeout: envDuration("AGORA_READ_HEADER_TIMEOUT", 10*time.Second),
-		ShutdownTimeout:   envDuration("AGORA_SHUTDOWN_TIMEOUT", 15*time.Second),
+		ReadHeaderTimeout: pick("AGORA_READ_HEADER_TIMEOUT", 10*time.Second),
+		ShutdownTimeout:   pick("AGORA_SHUTDOWN_TIMEOUT", 15*time.Second),
 		LogLevel:          env("AGORA_LOG_LEVEL", "info"),
+	}
+	if len(errs) > 0 {
+		return nil, errors.Join(errs...)
 	}
 	if err := c.validate(); err != nil {
 		return nil, err
@@ -58,14 +76,20 @@ func env(key, def string) string {
 	return def
 }
 
-func envDuration(key string, def time.Duration) time.Duration {
+// envDuration parses a duration, rejecting anything malformed or non-positive.
+// A zero or negative timeout disables the protection it was meant to provide, so
+// it is refused rather than applied.
+func envDuration(key string, def time.Duration) (time.Duration, error) {
 	v := os.Getenv(key)
 	if v == "" {
-		return def
+		return def, nil
 	}
 	d, err := time.ParseDuration(v)
 	if err != nil {
-		return def
+		return def, fmt.Errorf("config: %s=%q is not a duration (want a form like 10s or 1m): %w", key, v, err)
 	}
-	return d
+	if d <= 0 {
+		return def, fmt.Errorf("config: %s=%q must be positive; a non-positive timeout disables the limit", key, v)
+	}
+	return d, nil
 }

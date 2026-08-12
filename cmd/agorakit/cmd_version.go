@@ -12,6 +12,9 @@ func runVersion(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
+	if fs.NArg() > 0 {
+		return fmt.Errorf("version: unexpected argument %q", fs.Arg(0))
+	}
 	fmt.Printf("agorakit %s\n", version.Read())
 	return nil
 }

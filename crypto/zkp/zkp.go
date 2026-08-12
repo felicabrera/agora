@@ -19,6 +19,17 @@
 // together with the public key Y and the full ciphertext (A, B). Omitting the
 // public key or ciphertext from the transcript is a classic mistake that breaks
 // soundness / enables cross-context replay, so it is done explicitly here.
+//
+// Known gap: the transcript binds no election. Two elections that share a public
+// key also share a valid-proof space, so a (ciphertext, proof) pair lifted from
+// one verifies in the other. Nothing here prevents that, and it is not something
+// the ballot layer can paper over afterwards, because the binding has to be
+// inside the hash. Before ballots are cast anywhere real, the transcript must
+// additionally commit to an election identifier and to the ballot slot index,
+// which means these functions grow a context parameter and the domain separator
+// version is bumped. The right binding depends on how an election is identified,
+// which is a decision for the protocol layer, so it is recorded here rather than
+// guessed at now.
 package zkp
 
 import (
@@ -139,10 +150,20 @@ func VerifyBallot(pk *elgamal.PublicKey, ct *elgamal.Ciphertext, p *BallotProof)
 }
 
 // shiftedB returns B - j*G, the value that must equal r*Y in branch j.
+//
+// The subtraction is performed unconditionally, including for j = 0 where it is
+// arithmetically a no-op (0*G is the identity). Short-circuiting the j = 0 case
+// would be free performance and a vote-disclosure bug: ProveBallot calls this
+// once, on the *simulated* branch, so the branch taken is determined by how the
+// voter voted. A "yes" ballot would skip the subtraction and a "no" ballot would
+// perform it, making the running time of proof generation correlate with the
+// ballot's content. That is observable by anything sharing the machine, and on
+// the ÁGORA Urna it is observable by whoever is standing next to it.
+//
+// This does not make the package constant-time. The group operations themselves
+// are not audited for that, and the claim is not made anywhere. It removes one
+// asymmetry that was both real and free to remove.
 func shiftedB(g group.Group, ct *elgamal.Ciphertext, j uint64) group.Element {
-	if j == 0 {
-		return ct.B
-	}
 	return ct.B.Sub(g.ScalarBaseMul(g.ScalarFromUint64(j)))
 }
 

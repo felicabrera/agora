@@ -15,7 +15,10 @@ func decryptWith(g group.Group, shares []Share, ct *elgamal.Ciphertext) group.El
 	for k, s := range shares {
 		partials[k] = s.PartialDecrypt(ct.A)
 	}
-	xA := Combine(g, partials)
+	xA, err := Combine(g, partials)
+	if err != nil {
+		panic("threshold: test helper combined an invalid quorum: " + err.Error())
+	}
 	return ct.B.Sub(xA)
 }
 
@@ -87,7 +90,62 @@ func TestCombineRecoversKeyTimesA(t *testing.T) {
 	for k := 0; k < thresh; k++ {
 		partials[k] = shares[k].PartialDecrypt(A)
 	}
-	if !Combine(g, partials).Equal(A.ScalarMul(x)) {
+	combined, err := Combine(g, partials)
+	if err != nil {
+		t.Fatalf("Combine: %v", err)
+	}
+	if !combined.Equal(A.ScalarMul(x)) {
 		t.Fatal("Lagrange recombination did not yield x*A")
+	}
+}
+
+// TestCombineRejectsRepeatedAuthority guards the failure mode that motivated
+// validating Combine's input. Before it validated, a quorum containing the same
+// authority twice produced a well-formed group element that was simply the wrong
+// answer: Lagrange interpolation is undefined over repeated indices, and because
+// ristretto255 defines the inverse of zero as zero, the degenerate denominator
+// went unnoticed. A wrong x*A means a wrong tally, published with proofs and
+// indistinguishable from a correct one.
+func TestCombineRejectsRepeatedAuthority(t *testing.T) {
+	g := group.NewRistretto255()
+	_, shares, err := Deal(g, 5, 3, rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	A := g.ScalarBaseMul(g.ScalarFromUint64(7))
+
+	partials := []PartialDecryption{
+		shares[0].PartialDecrypt(A),
+		shares[0].PartialDecrypt(A), // the same authority, twice
+		shares[1].PartialDecrypt(A),
+	}
+	if _, err := Combine(g, partials); err == nil {
+		t.Fatal("Combine accepted a quorum containing the same authority twice")
+	}
+}
+
+func TestCombineRejectsMalformedQuorums(t *testing.T) {
+	g := group.NewRistretto255()
+	_, shares, err := Deal(g, 3, 2, rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	A := g.ScalarBaseMul(g.ScalarFromUint64(3))
+	valid := shares[0].PartialDecrypt(A)
+
+	cases := []struct {
+		name     string
+		partials []PartialDecryption
+	}{
+		{"empty", nil},
+		// Index 0 evaluates the polynomial at its constant term, which is the
+		// secret itself. It is never dealt, so it must never be accepted.
+		{"index zero", []PartialDecryption{{Index: 0, D: A}, valid}},
+		{"missing value", []PartialDecryption{{Index: 2, D: nil}, valid}},
+	}
+	for _, tc := range cases {
+		if _, err := Combine(g, tc.partials); err == nil {
+			t.Fatalf("%s: Combine = nil error, want an error", tc.name)
+		}
 	}
 }
