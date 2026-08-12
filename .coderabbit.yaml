@@ -1,0 +1,47 @@
+language: "es"
+early_access: false
+reviews:
+  profile: "assertive"
+  request_changes_workflow: true
+  high_level_summary: true
+  poem: false
+  auto_review:
+    enabled: true
+    drafts: false
+  path_instructions:
+    - path: "crypto/**"
+      instructions: >
+        Este código implementa cifrado homomórfico ElGamal, pruebas de
+        conocimiento cero (Schnorr / Bulletproofs) y descifrado con umbral
+        para un sistema de voto electrónico. Señalá cualquier desviación de
+        operaciones en tiempo constante, fuentes de aleatoriedad débiles o no
+        criptográficas (`math/rand` en lugar de `crypto/rand`), validación
+        faltante sobre puntos de curva o elementos de grupo recibidos desde
+        afuera, reutilización de nonces, y cualquier lógica que pueda filtrar
+        información sobre el texto plano del voto (branching o accesos a
+        memoria dependientes del secreto, mensajes de error distinguibles,
+        diferencias de timing). Tratá cualquier cambio acá como de alto riesgo.
+    - path: "internal/crypto/**"
+      instructions: >
+        Mismas reglas que `crypto/**`: núcleo criptográfico del sistema de
+        voto. Alto riesgo por defecto.
+    - path: "faro/**"
+      instructions: >
+        Integración con FARO, el log público de auditoría append-only basado
+        en árboles de Merkle. Señalá cualquier cosa que pueda romper las
+        garantías de append-only, permitir modificación retroactiva, o
+        debilitar la verificación de pruebas de inclusión y consistencia.
+        Verificá que las respuestas del log se validen criptográficamente en
+        lugar de confiarse.
+    - path: "internal/faro/**"
+      instructions: >
+        Mismas reglas que `faro/**`.
+    - path: ".github/**"
+      instructions: >
+        Configuración de CI/CD y gobernanza. Señalá permisos de workflow más
+        amplios de lo necesario, uso de referencias mutables en acciones de
+        terceros (tags móviles o `@master` en lugar de un tag fijo o un SHA),
+        y cualquier exposición de secretos en logs o en workflows que corran
+        sobre PRs de forks.
+chat:
+  auto_reply: true

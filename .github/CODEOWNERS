@@ -1,0 +1,27 @@
+# CODEOWNERS — ÁGORA
+#
+# El ruleset `protect-def-branches` tiene activado `require_code_owner_review`,
+# así que toda ruta listada acá exige revisión de su owner antes del merge.
+#
+# PENDIENTE: agregar los handles reales de GitHub del resto del equipo y
+# sumarlos como colaboradores del repositorio. Hasta entonces el único owner
+# es @felicabrera, que no puede aprobar sus propios PRs: los merges dependen
+# del bypass de admin. Al incorporar al equipo, descomentar y completar.
+
+# Owner por defecto de todo el repositorio.
+*                       @felicabrera
+# *                     @felicabrera @<handle-stefano> @<handle-lucia>
+
+# Núcleo criptográfico: ElGamal, ZKP (Schnorr/Bulletproofs), threshold
+# decryption. Máxima escrutinio: todo cambio acá es de alto riesgo.
+/crypto/                @felicabrera
+/internal/crypto/       @felicabrera
+
+# Integración con el log de transparencia FARO.
+/faro/                  @felicabrera
+/internal/faro/         @felicabrera
+
+# Configuración de seguridad, CI y gobernanza del repositorio.
+/.github/               @felicabrera
+/SECURITY.md            @felicabrera
+/.coderabbit.yaml       @felicabrera
