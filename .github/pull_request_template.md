@@ -1,21 +1,21 @@
-## Descripción
-<!-- ¿Qué cambia este PR? -->
+## Description
+<!-- What does this PR change? -->
 
-## Tipo de cambio
+## Type of change
 - [ ] Bug fix
-- [ ] Nueva funcionalidad
+- [ ] New feature
 - [ ] Refactor
-- [ ] Documentación
-- [ ] Otro (especificar)
+- [ ] Documentation
+- [ ] Other (specify)
 
-## ¿Cómo se probó?
-<!-- Pasos para verificar que funciona -->
+## How was it tested?
+<!-- Steps to verify that it works -->
 
 ## Checklist
-- [ ] Mi código sigue el estilo del proyecto
-- [ ] Probé los cambios localmente
-- [ ] Actualicé la documentación si era necesario
-- [ ] No rompo funcionalidad existente
+- [ ] My code follows the project style
+- [ ] I tested the changes locally
+- [ ] I updated the documentation if needed
+- [ ] I do not break existing functionality
 
-## Issue relacionada
+## Related issue
 Closes #

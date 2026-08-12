@@ -1,4 +1,4 @@
-language: "es"
+language: "en"
 early_access: false
 reviews:
   profile: "assertive"
@@ -8,40 +8,53 @@ reviews:
   auto_review:
     enabled: true
     drafts: false
+    # Review is opt-out, never opt-in. A PR with no label still gets reviewed.
+    # Opt-in by label would mean an unlabelled PR silently gets no review while
+    # its status check still reports green, which is worse than no check at all.
+    labels:
+      - "!skip-review"
+    # Dependabot PRs are already covered by Dependabot itself, CodeQL and CI.
+    # Excluding them keeps review quota for changes that need human judgement.
+    ignore_usernames:
+      - "dependabot[bot]"
+    ignore_title_keywords:
+      - "WIP"
+      - "DO NOT MERGE"
+    # Do not re-run a full review on every push. Without this, a PR that takes
+    # several rounds of fixes burns one review per push and exhausts the rate
+    # limit. Request a re-review with `@coderabbitai review` when ready.
+    auto_incremental_review: false
   path_instructions:
     - path: "crypto/**"
       instructions: >
-        Este código implementa cifrado homomórfico ElGamal, pruebas de
-        conocimiento cero (Schnorr / Bulletproofs) y descifrado con umbral
-        para un sistema de voto electrónico. Señalá cualquier desviación de
-        operaciones en tiempo constante, fuentes de aleatoriedad débiles o no
-        criptográficas (`math/rand` en lugar de `crypto/rand`), validación
-        faltante sobre puntos de curva o elementos de grupo recibidos desde
-        afuera, reutilización de nonces, y cualquier lógica que pueda filtrar
-        información sobre el texto plano del voto (branching o accesos a
-        memoria dependientes del secreto, mensajes de error distinguibles,
-        diferencias de timing). Tratá cualquier cambio acá como de alto riesgo.
+        This code implements ElGamal homomorphic encryption, zero-knowledge
+        proofs (Schnorr / Bulletproofs) and threshold decryption for an
+        electronic voting system. Flag any deviation from constant-time
+        operations, weak or non-cryptographic randomness sources (`math/rand`
+        instead of `crypto/rand`), missing validation of curve points or group
+        elements received from outside, nonce reuse, and any logic that could
+        leak information about vote plaintext (secret-dependent branching or
+        memory access, distinguishable error messages, timing differences).
+        Treat any change here as high risk.
     - path: "internal/crypto/**"
       instructions: >
-        Mismas reglas que `crypto/**`: núcleo criptográfico del sistema de
-        voto. Alto riesgo por defecto.
+        Same rules as `crypto/**`: cryptographic core of the voting system.
+        High risk by default.
     - path: "faro/**"
       instructions: >
-        Integración con FARO, el log público de auditoría append-only basado
-        en árboles de Merkle. Señalá cualquier cosa que pueda romper las
-        garantías de append-only, permitir modificación retroactiva, o
-        debilitar la verificación de pruebas de inclusión y consistencia.
-        Verificá que las respuestas del log se validen criptográficamente en
-        lugar de confiarse.
+        Integration with FARO, the append-only Merkle-tree-based public audit
+        log. Flag anything that could break append-only guarantees, allow
+        retroactive modification, or weaken verification of inclusion and
+        consistency proofs. Check that log responses are cryptographically
+        verified rather than trusted.
     - path: "internal/faro/**"
       instructions: >
-        Mismas reglas que `faro/**`.
+        Same rules as `faro/**`.
     - path: ".github/**"
       instructions: >
-        Configuración de CI/CD y gobernanza. Señalá permisos de workflow más
-        amplios de lo necesario, uso de referencias mutables en acciones de
-        terceros (tags móviles o `@master` en lugar de un tag fijo o un SHA),
-        y cualquier exposición de secretos en logs o en workflows que corran
-        sobre PRs de forks.
+        CI/CD and governance configuration. Flag workflow permissions broader
+        than necessary, mutable references to third-party actions (floating
+        tags or `@master` instead of a pinned tag or SHA), and any exposure of
+        secrets in logs or in workflows that run on fork pull requests.
 chat:
   auto_reply: true
