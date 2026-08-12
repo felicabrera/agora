@@ -1,0 +1,84 @@
+# golangci-lint v2 configuration.
+#
+# The version key is mandatory in v2 and selects the config schema, not the
+# binary. The binary version is pinned in .github/workflows/go-ci.yml; the two
+# must stay compatible, so bump them together.
+#
+# The linter set is deliberately stricter than the default. This repository
+# contains the cryptographic core of a voting system, where an unchecked error
+# return or an integer conversion that silently wraps is not a style question.
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  default: standard
+  enable:
+    # An ignored error in a proof-verification path is the exact bug class this
+    # project cannot afford, so errcheck is not negotiable here.
+    - errcheck
+    - govet
+    - staticcheck
+    - ineffassign
+    - unused
+    # Security-focused static analysis. Flags weak randomness, unchecked type
+    # assertions on untrusted input and file-permission mistakes.
+    - gosec
+    # Enforces errors.Is/As over == and type assertions, which matters as soon
+    # as sentinel errors appear in the storage and API layers.
+    - errorlint
+    # Catches unclosed HTTP response bodies, i.e. leaked connections in the FARO
+    # client once it exists.
+    - bodyclose
+    - contextcheck
+    - revive
+    - misspell
+    - unconvert
+    - copyloopvar
+    - prealloc
+    - nilerr
+
+  settings:
+    govet:
+      enable-all: true
+      disable:
+        # fieldalignment optimises struct layout for memory. Reordering the
+        # fields of a ciphertext or a proof to save a few bytes makes the code
+        # stop matching the papers it is transcribed from, which costs more in
+        # reviewability than it gains in memory.
+        - fieldalignment
+    revive:
+      rules:
+        - name: exported
+          # Every exported identifier in crypto/ is part of the auditable
+          # surface, so it has to be documented.
+          # checkPublicInterface is deliberately not enabled: the interface methods in
+          # crypto/group carry inline comments, and requiring a doc block on each
+          # would push the mathematics off the line it describes.
+        - name: package-comments
+    # gosec runs with its full rule set. G115 (integer overflow on conversion)
+    # is noisy on loop counters that are already bounded, but suppressing it
+    # repository-wide in a project that parses untrusted ballots would also hide
+    # the conversions that matter. Suppress it at the specific line instead,
+    # with `//nolint:gosec // <reason>` and a reason that says why the value is
+    # bounded.
+
+  exclusions:
+    rules:
+      # Test files may use weak randomness and skip error wrapping; they are not
+      # part of the attack surface and the noise drowns real findings.
+      - path: _test\.go
+        linters:
+          - gosec
+          - errcheck
+          - prealloc
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/felicabrera/agora

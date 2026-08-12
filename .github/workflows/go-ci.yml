@@ -45,7 +45,9 @@ jobs:
         if: steps.detect.outputs.has_go == 'true'
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.22'
+          # go.mod is the single source of truth for the toolchain version, so a
+          # Go upgrade is one edit and CI cannot drift from local builds.
+          go-version-file: go.mod
           cache: ${{ hashFiles('**/go.sum') != '' }}
 
       - name: Vet
@@ -87,7 +89,7 @@ jobs:
         if: steps.detect.outputs.has_go == 'true'
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.22'
+          go-version-file: go.mod
 
       - name: gosec (static security analysis)
         if: steps.detect.outputs.has_go == 'true'

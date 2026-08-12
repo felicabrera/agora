@@ -36,20 +36,21 @@ reviews:
         leak information about vote plaintext (secret-dependent branching or
         memory access, distinguishable error messages, timing differences).
         Treat any change here as high risk.
-    - path: "internal/crypto/**"
+    - path: "cmd/**"
       instructions: >
-        Same rules as `crypto/**`: cryptographic core of the voting system.
-        High risk by default.
-    - path: "faro/**"
-      instructions: >
-        Integration with FARO, the append-only Merkle-tree-based public audit
-        log. Flag anything that could break append-only guarantees, allow
-        retroactive modification, or weaken verification of inclusion and
-        consistency proofs. Check that log responses are cryptographically
-        verified rather than trusted.
+        Service entry points. Flag anything that publishes, accepts or discards
+        data without the check that authorises it, secrets read into a place
+        they can be logged, missing request timeouts, and error responses to
+        unauthenticated callers that distinguish failure modes finely enough to
+        act as an oracle.
     - path: "internal/faro/**"
       instructions: >
-        Same rules as `faro/**`.
+        Client for FARO, the append-only Merkle-tree-based public audit log.
+        ÁGORA is a client of FARO, not a peer: flag anything read back from the
+        log that is trusted without cryptographic verification, in particular a
+        checkpoint accepted without checking its signature against a pinned
+        origin, or an inclusion or consistency proof whose result is not
+        actually compared against a verified root.
     - path: ".github/**"
       instructions: >
         CI/CD and governance configuration. Flag workflow permissions broader
