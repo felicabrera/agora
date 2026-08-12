@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+title: "ÁGORA: An Auditable, Cryptographically Verifiable Electronic Voting System"
+message: "If you reference this software, please cite it as below."
+type: software
+authors:
+  - given-names: Felipe
+    family-names: Cabrera
+    affiliation: Universidad Católica del Uruguay
+  - given-names: Stefano
+    family-names: Francolino
+    affiliation: Universidad Católica del Uruguay
+  - given-names: Lucía
+    family-names: Vázquez
+    affiliation: Universidad Católica del Uruguay
+repository-code: "https://github.com/felicabrera/agora"
+license: AGPL-3.0-or-later
+version: "0.1.0"
+keywords:
+  - electronic voting
+  - verifiable voting
+  - homomorphic encryption
+  - ElGamal
+  - zero-knowledge proofs
+  - threshold cryptography
+  - Shamir secret sharing
+  - transparency log
+  - ristretto255
+  - Uruguay

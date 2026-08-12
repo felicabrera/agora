@@ -14,14 +14,16 @@
 *                       @felicabrera @Stefano936 @Luciavazquez01
 
 # --- High risk areas ------------------------------------------------------
-# Cryptographic core: ElGamal, ZKP (Schnorr/Bulletproofs), threshold decryption
-# and distributed key generation. A mistake here can break ballot secrecy or
-# tally integrity.
+# Cryptographic core: ElGamal, ZKP, threshold decryption and, later, distributed
+# key generation. A mistake here can break ballot secrecy or tally integrity.
+# This directory is also the public, importable, AGPL-licensed surface, so a
+# change to it is a change to an API third parties audit against.
 /crypto/                @felicabrera @Stefano936 @Luciavazquez01
-/internal/crypto/       @felicabrera @Stefano936 @Luciavazquez01
+
+# Service entry points. Anything that decides what gets published or accepted.
+/cmd/                   @felicabrera @Stefano936 @Luciavazquez01
 
 # Integration with the FARO transparency log.
-/faro/                  @felicabrera @Stefano936 @Luciavazquez01
 /internal/faro/         @felicabrera @Stefano936 @Luciavazquez01
 
 # Security, CI/CD and repository governance configuration.

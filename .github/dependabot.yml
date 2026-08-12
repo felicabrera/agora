@@ -4,9 +4,9 @@
 # repository level (Dependabot alerts plus automated security fixes) and fire on
 # their own whenever an advisory affects the project.
 #
-# Today the repository only contains GitHub Actions workflows, so that is the
-# only active ecosystem. Declaring `gomod` without a `go.mod` present makes
-# Dependabot fail on every run. Uncomment the block below once the code lands.
+# Every ecosystem present in the repository is monitored. Adding a manifest for
+# a new one (npm, docker) means adding a block here in the same change, or the
+# new dependency tree goes unwatched.
 version: 2
 updates:
   - package-ecosystem: "github-actions"
@@ -29,15 +29,21 @@ updates:
     commit-message:
       prefix: "chore(ci)"
 
-  # - package-ecosystem: "gomod"
-  #   directory: "/"
-  #   schedule:
-  #     interval: "weekly"
-  #     day: "monday"
-  #   open-pull-requests-limit: 10
-  #   labels: ["dependencies", "go"]
-  #   groups:
-  #     go-minor-patch:
-  #       update-types: ["minor", "patch"]
-  #   commit-message:
-  #     prefix: "chore(deps)"
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    labels: ["dependencies", "go"]
+    # Minor and patch bumps are grouped into one PR. Reviewing twelve
+    # near-identical version bumps separately is how a malicious one gets waved
+    # through; major bumps stay separate because they deserve individual thought.
+    groups:
+      go-minor-patch:
+        update-types: ["minor", "patch"]
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+    commit-message:
+      prefix: "chore(deps)"
