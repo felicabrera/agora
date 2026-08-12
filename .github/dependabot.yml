@@ -5,10 +5,8 @@
 # their own whenever an advisory affects the project.
 #
 # Today the repository only contains GitHub Actions workflows, so that is the
-# only active ecosystem. Declaring `gomod` or `npm` without their manifest
-# present makes Dependabot fail on every run. Uncomment the blocks below once
-# the code lands, and adjust `directory` if the Next.js frontend lives in a
-# subdirectory such as `/web`.
+# only active ecosystem. Declaring `gomod` without a `go.mod` present makes
+# Dependabot fail on every run. Uncomment the block below once the code lands.
 version: 2
 updates:
   - package-ecosystem: "github-actions"
@@ -40,19 +38,6 @@ updates:
   #   labels: ["dependencies", "go"]
   #   groups:
   #     go-minor-patch:
-  #       update-types: ["minor", "patch"]
-  #   commit-message:
-  #     prefix: "chore(deps)"
-
-  # - package-ecosystem: "npm"
-  #   directory: "/web"
-  #   schedule:
-  #     interval: "weekly"
-  #     day: "monday"
-  #   open-pull-requests-limit: 10
-  #   labels: ["dependencies", "javascript"]
-  #   groups:
-  #     npm-minor-patch:
   #       update-types: ["minor", "patch"]
   #   commit-message:
   #     prefix: "chore(deps)"
