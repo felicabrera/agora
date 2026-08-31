@@ -8,7 +8,7 @@
 # stamps module information; -trimpath keeps absolute build paths out of the
 # binary so the same source produces the same bytes on any machine.
 
-FROM golang:1.26-bookworm AS build
+FROM golang:1.27-bookworm AS build
 WORKDIR /src
 
 # Copy the module graph first so dependency download is cached independently of
