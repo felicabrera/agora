@@ -38,14 +38,16 @@ El núcleo criptográfico de `crypto/` proviene de
 [ÁBACO](https://github.com/felicabrera/abaco), donde se escribió y se midió primero. ÁBACO
 se describe a sí mismo como *"benchmark suite for the ÁGORA verifiable-voting core"*, y
 hasta ahora medía una copia privada de ese núcleo porque el núcleo no existía como
-artefacto separado. Vive aquí, público e importable bajo AGPL-3.0, para que:
+artefacto separado. Vive aquí, público para lectura y auditoría, para que:
 
 1. ÁBACO mida el código que realmente se ejecuta, no una copia;
 2. un tercero pueda verificar un escrutinio sin ejecutar el servidor de ÁGORA;
 3. exista una sola implementación de ElGamal en el proyecto y no dos.
 
-El paso de ÁBACO a importar `github.com/felicabrera/agora/crypto` es trabajo posterior, en
-aquel repositorio.
+El código es público para consulta y verificación, no para reutilización: no está
+licenciado para que terceros lo importen o distribuyan. El paso de ÁBACO a importar
+`github.com/felicabrera/agora/crypto` es trabajo posterior, en aquel repositorio, bajo
+autorización del mismo autor.
 
 ## Quickstart
 
@@ -132,9 +134,10 @@ divulgación coordinada descrito allí y no un issue público.
 
 ## Licencia
 
-GNU AGPL-3.0 — ver [`LICENSE`](LICENSE). La licencia es deliberada: un sistema de votación
-cuyo argumento central es la auditabilidad no puede desplegarse como servicio sin publicar
-el código que se está ejecutando.
+Source-available, solo auditoría, uso no comercial — ver [`LICENSE`](LICENSE). La decisión
+es deliberada: un sistema de votación cuyo argumento central es la auditabilidad debe
+publicar el código que se está ejecutando, pero eso no implica ceder derechos de
+reutilización, modificación o explotación comercial a terceros.
 
 ## Referencias
 

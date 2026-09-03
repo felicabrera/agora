@@ -16,8 +16,8 @@
 # --- High risk areas ------------------------------------------------------
 # Cryptographic core: ElGamal, ZKP, threshold decryption and, later, distributed
 # key generation. A mistake here can break ballot secrecy or tally integrity.
-# This directory is also the public, importable, AGPL-licensed surface, so a
-# change to it is a change to an API third parties audit against.
+# This directory is also the public, source-available (audit-only) surface, so
+# a change to it is a change to an API third parties audit against.
 /crypto/                @felicabrera @Stefano936 @Luciavazquez01
 
 # Service entry points. Anything that decides what gets published or accepted.

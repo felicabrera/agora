@@ -26,10 +26,11 @@ permite que FARO sea auditado por separado.
 
 ## `crypto/` es público, `internal/` no
 
-`crypto/` es la superficie auditable. Está bajo AGPL-3.0 y es importable por cualquiera,
-porque el argumento del proyecto es que un tercero pueda verificar un escrutinio sin
-ejecutar nuestro servidor. Todo lo que se agregue ahí es, en la práctica, una promesa de
-estabilidad de API.
+`crypto/` es la superficie auditable. Es de lectura pública (source-available, solo
+auditoría) porque el argumento del proyecto es que un tercero pueda verificar un escrutinio
+sin ejecutar nuestro servidor — no porque esté licenciado para que terceros lo importen o
+reutilicen. Todo lo que se agregue ahí es, en la práctica, una promesa de estabilidad de
+API.
 
 `internal/` es pegamento del servicio: configuración, almacenamiento, HTTP. El compilador
 de Go impide que se importe desde afuera, que es exactamente lo que queremos.

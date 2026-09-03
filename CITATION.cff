@@ -13,7 +13,7 @@ authors:
     family-names: Vázquez
     affiliation: Universidad Católica del Uruguay
 repository-code: "https://github.com/felicabrera/agora"
-license: AGPL-3.0-or-later
+license-url: "https://github.com/felicabrera/agora/blob/main/LICENSE"
 version: "0.1.0"
 keywords:
   - electronic voting

@@ -41,14 +41,17 @@ jobs:
           fail-on-severity: high
           # Licence policy is deliberately not configured yet.
           #
-          # This project is AGPL-3.0, so a dependency under an incompatible
-          # licence is a real defect and not just a legal footnote. But
-          # compatibility is genuinely case by case, and a wrong deny list on a
-          # blocking check would either stop legitimate work or give false
-          # confidence. Decide this once real dependencies exist, with the
-          # actual list in front of you, then add one of:
+          # This project is source-available under a custom non-commercial
+          # licence, so a dependency under an incompatible licence (e.g. one
+          # that requires redistribution rights we don't grant, or that
+          # imposes copyleft obligations on this codebase) is a real defect
+          # and not just a legal footnote. But compatibility is genuinely
+          # case by case, and a wrong deny list on a blocking check would
+          # either stop legitimate work or give false confidence. Decide this
+          # once real dependencies exist, with the actual list in front of
+          # you, then add one of:
           #
-          #   deny-licenses: <SPDX ids that cannot combine with AGPL-3.0>
+          #   deny-licenses: <SPDX ids incompatible with this project's terms>
           #   allow-licenses: <SPDX ids explicitly cleared>
           #
           # The two are mutually exclusive; setting both is an error.
