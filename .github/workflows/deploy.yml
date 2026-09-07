@@ -73,8 +73,9 @@ jobs:
           DEPLOY_SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT }}
           DEPLOY_SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
           REMOTE_PATH: ${{ secrets.REMOTE_PATH }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          domain=$([ "${{ github.ref_name }}" = "main" ] && echo "agora.felicabrera.com" || echo "agora-test.felicabrera.com")
+          domain=$([ "$REF_NAME" = "main" ] && echo "agora.felicabrera.com" || echo "agora-test.felicabrera.com")
           scp -i ~/.ssh/deploy_key -P "$DEPLOY_SSH_PORT" -o UserKnownHostsFile=~/.ssh/known_hosts \
             "deploy/nginx/$domain.conf" "$DEPLOY_SSH_USER@$DEPLOY_SSH_HOST:$REMOTE_PATH/release/$domain.conf"
           ssh -i ~/.ssh/deploy_key -p "$DEPLOY_SSH_PORT" -o UserKnownHostsFile=~/.ssh/known_hosts \
