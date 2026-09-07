@@ -1,0 +1,84 @@
+name: Deploy
+
+# Ships agora-api to the VPS: development -> agora-test.felicabrera.com,
+# main -> agora.felicabrera.com. Each branch deploys through its own GitHub
+# Environment (test / production), which is where the per-environment
+# secrets (image/container names, host port) live — nothing environment
+# specific is hardcoded here.
+#
+# The deploy key and remote path are repo-level secrets: one SSH identity per
+# repo, restricted on the host to that repo's own directory tree
+# (/opt/pfg/agora), so a compromised key cannot reach faro's containers.
+#
+# Secrets are only ever read into env: at the step that needs them, never
+# interpolated straight into a run: script, so a secret value can't be
+# reinterpreted as shell syntax.
+on:
+  push:
+    branches: [development, main]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'main' && 'production' || 'test' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up deploy SSH key
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+          DEPLOY_SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "$DEPLOY_SSH_PORT" "$DEPLOY_SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Sync source to the host
+        env:
+          DEPLOY_SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+          DEPLOY_SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT }}
+          DEPLOY_SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
+          REMOTE_PATH: ${{ secrets.REMOTE_PATH }}
+        run: |
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/deploy_key -p $DEPLOY_SSH_PORT -o UserKnownHostsFile=~/.ssh/known_hosts" \
+            --exclude '.git' \
+            ./ "$DEPLOY_SSH_USER@$DEPLOY_SSH_HOST:$REMOTE_PATH/release/"
+
+      - name: Build and start the container
+        env:
+          DEPLOY_SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+          DEPLOY_SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT }}
+          DEPLOY_SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
+          REMOTE_PATH: ${{ secrets.REMOTE_PATH }}
+          IMAGE_NAME: ${{ secrets.IMAGE_NAME }}
+          CONTAINER_NAME: ${{ secrets.CONTAINER_NAME }}
+          HOST_PORT: ${{ secrets.HOST_PORT }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_SSH_PORT" -o UserKnownHostsFile=~/.ssh/known_hosts \
+            "$DEPLOY_SSH_USER@$DEPLOY_SSH_HOST" \
+            "IMAGE_NAME='$IMAGE_NAME' CONTAINER_NAME='$CONTAINER_NAME' HOST_PORT='$HOST_PORT' \
+             docker compose -f '$REMOTE_PATH/release/docker-compose.yml' --project-directory '$REMOTE_PATH/release' up -d --build --remove-orphans"
+
+      - name: Install the nginx vhost
+        env:
+          DEPLOY_SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+          DEPLOY_SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT }}
+          DEPLOY_SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
+          REMOTE_PATH: ${{ secrets.REMOTE_PATH }}
+        run: |
+          domain=$([ "${{ github.ref_name }}" = "main" ] && echo "agora.felicabrera.com" || echo "agora-test.felicabrera.com")
+          scp -i ~/.ssh/deploy_key -P "$DEPLOY_SSH_PORT" -o UserKnownHostsFile=~/.ssh/known_hosts \
+            "deploy/nginx/$domain.conf" "$DEPLOY_SSH_USER@$DEPLOY_SSH_HOST:$REMOTE_PATH/release/$domain.conf"
+          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_SSH_PORT" -o UserKnownHostsFile=~/.ssh/known_hosts \
+            "$DEPLOY_SSH_USER@$DEPLOY_SSH_HOST" \
+            "sudo install -m 644 '$REMOTE_PATH/release/$domain.conf' '/etc/nginx/sites-available/$domain.conf' && \
+             sudo ln -sf '/etc/nginx/sites-available/$domain.conf' '/etc/nginx/sites-enabled/$domain.conf' && \
+             sudo nginx -t && sudo systemctl reload nginx"

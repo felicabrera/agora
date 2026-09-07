@@ -76,11 +76,18 @@ func run() error {
 
 func routes(logger *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		if _, err := fmt.Fprintf(w, `{"status":"ok","build":%q}`+"\n", version.Read().String()); err != nil {
 			logger.Error("writing health response", "error", err)
+		}
+	})
+	mux.HandleFunc("GET /", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		if _, err := fmt.Fprintln(w, "hello world!"); err != nil {
+			logger.Error("writing root response", "error", err)
 		}
 	})
 	return mux
