@@ -12,9 +12,9 @@ name: Go CI
 # artifacts has to be reproducible. The readable tag is kept as a comment.
 on:
   pull_request:
-    branches: [develop, main]
+    branches: [development, main]
   push:
-    branches: [develop, main]
+    branches: [development, main]
 
 permissions:
   contents: read
