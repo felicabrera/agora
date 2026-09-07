@@ -32,13 +32,12 @@ jobs:
       - name: Set up deploy SSH key
         env:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          DEPLOY_SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
-          DEPLOY_SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT }}
+          DEPLOY_SSH_HOST_KEY: ${{ secrets.DEPLOY_SSH_HOST_KEY }}
         run: |
           install -d -m 700 ~/.ssh
           printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -p "$DEPLOY_SSH_PORT" "$DEPLOY_SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          printf '%s\n' "$DEPLOY_SSH_HOST_KEY" > ~/.ssh/known_hosts
 
       - name: Sync source to the host
         env:
@@ -61,11 +60,12 @@ jobs:
           IMAGE_NAME: ${{ secrets.IMAGE_NAME }}
           CONTAINER_NAME: ${{ secrets.CONTAINER_NAME }}
           HOST_PORT: ${{ secrets.HOST_PORT }}
+          PROJECT_NAME: ${{ secrets.PROJECT_NAME }}
         run: |
           ssh -i ~/.ssh/deploy_key -p "$DEPLOY_SSH_PORT" -o UserKnownHostsFile=~/.ssh/known_hosts \
             "$DEPLOY_SSH_USER@$DEPLOY_SSH_HOST" \
             "IMAGE_NAME='$IMAGE_NAME' CONTAINER_NAME='$CONTAINER_NAME' HOST_PORT='$HOST_PORT' \
-             docker compose -f '$REMOTE_PATH/release/docker-compose.yml' --project-directory '$REMOTE_PATH/release' up -d --build --remove-orphans"
+             docker compose -f '$REMOTE_PATH/release/docker-compose.yml' --project-directory '$REMOTE_PATH/release' -p '$PROJECT_NAME' up -d --build --remove-orphans"
 
       - name: Install the nginx vhost
         env:
@@ -75,7 +75,11 @@ jobs:
           REMOTE_PATH: ${{ secrets.REMOTE_PATH }}
           REF_NAME: ${{ github.ref_name }}
         run: |
-          domain=$([ "$REF_NAME" = "main" ] && echo "agora.felicabrera.com" || echo "agora-test.felicabrera.com")
+          case "$REF_NAME" in
+            main) domain="agora.felicabrera.com" ;;
+            development) domain="agora-test.felicabrera.com" ;;
+            *) echo "unexpected ref: $REF_NAME" >&2; exit 1 ;;
+          esac
           scp -i ~/.ssh/deploy_key -P "$DEPLOY_SSH_PORT" -o UserKnownHostsFile=~/.ssh/known_hosts \
             "deploy/nginx/$domain.conf" "$DEPLOY_SSH_USER@$DEPLOY_SSH_HOST:$REMOTE_PATH/release/$domain.conf"
           ssh -i ~/.ssh/deploy_key -p "$DEPLOY_SSH_PORT" -o UserKnownHostsFile=~/.ssh/known_hosts \
