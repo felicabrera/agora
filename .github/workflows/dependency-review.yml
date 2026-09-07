@@ -11,7 +11,7 @@ name: Dependency Review
 # calling the dependency review API.
 on:
   pull_request:
-    branches: [develop, main]
+    branches: [development, main]
 
 permissions:
   contents: read

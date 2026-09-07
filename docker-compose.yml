@@ -1,0 +1,25 @@
+# Runtime composition for the agora-api image.
+#
+# One file covers both the test and prod deployments: everything that differs
+# between them (image tag, container name, published port) comes from the
+# .env file the deploy workflow writes on the host, not from a second compose
+# file. See .github/workflows/deploy.yml and deploy/nginx/*.conf.
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${IMAGE_NAME:-agora-api}:latest
+    container_name: ${CONTAINER_NAME:-agora-api}
+    restart: unless-stopped
+    stop_grace_period: 20s
+    # Loopback only: nginx on the host is the public entrypoint.
+    ports:
+      - "127.0.0.1:${HOST_PORT:-8080}:8080"
+    environment:
+      AGORA_ADDR: ":8080"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
