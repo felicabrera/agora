@@ -1,0 +1,140 @@
+#!/usr/bin/env bash
+#
+# Root-owned wrapper that publishes the agora vhosts on the edge host. The
+# agora-deploy user may sudo only this file, with one of the two domains
+# below as the single argument. It must never be writable by that user.
+#
+# The staged file belongs to the unprivileged user, so it is treated as
+# untrusted: read once without following symlinks, size-limited, and checked
+# line by line against exact patterns before anything touches /etc/nginx.
+
+set -euo pipefail
+
+DOMAIN="${1:-}"
+case "$DOMAIN" in
+	agora.felicabrera.com) PORTS='28080' ;;
+	agora-test.felicabrera.com) PORTS='28081' ;;
+	*) echo "::error::domain not allowed: $DOMAIN"; exit 1 ;;
+esac
+
+STAGED=/home/agora-deploy/$DOMAIN.conf.new
+TARGET=/etc/nginx/sites-available/$DOMAIN.conf
+ENABLED=/etc/nginx/sites-enabled/$DOMAIN.conf
+BACKUP="$TARGET.bak"
+DOT_DOMAIN="${DOMAIN//./\\.}"
+
+[ "$(id -u)" -eq 0 ] || { echo "must run as root via sudo"; exit 1; }
+
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+
+dd if="$STAGED" of="$work/new.conf" iflag=nofollow bs=64k count=2 status=none \
+	|| { echo "::error::cannot read $STAGED (missing or a symlink)."; exit 1; }
+[ "$(stat -c %s "$work/new.conf")" -le 65536 ] || { echo "::error::vhost is larger than 64 KiB."; exit 1; }
+
+if LC_ALL=C grep -qP '[^\t\x20-\x7e]' "$work/new.conf"; then
+	echo "::error::vhost has characters outside printable ASCII."
+	exit 1
+fi
+
+fail=0
+n=0
+depth=0
+named=0
+while IFS= read -r line || [ -n "$line" ]; do
+	n=$((n + 1))
+	line="${line//$'\t'/ }"
+	while [[ $line == *"  "* ]]; do line="${line//  / }"; done
+	line="${line# }"
+	line="${line% }"
+	[ -z "$line" ] && continue
+	[[ $line == \#* ]] && continue
+	case "$line" in
+		"server {")
+			[ "$depth" -eq 0 ] || { echo "::error::line $n: nested server block."; fail=1; }
+			depth=1; named=0; continue ;;
+		"location / {" | "location /api/ {" | "location = /api/health {")
+			depth=$((depth + 1)); continue ;;
+		"}")
+			depth=$((depth - 1))
+			if [ "$depth" -eq 0 ] && [ "$named" -eq 0 ]; then
+				echo "::error::line $n: server block has no server_name."; fail=1
+			fi
+			continue ;;
+	esac
+	[[ $line =~ ^listen\ (\[::\]:)?(80|443)(\ ssl\ http2)?\;$ ]] && continue
+	[[ $line == "server_name $DOMAIN;" ]] && { named=1; continue; }
+	[[ $line == 'return 301 https://$host$request_uri;' ]] && continue
+	[[ $line == 'modsecurity on;' ]] && continue
+	[[ $line == 'modsecurity_rules_file /etc/nginx/modsec/main.conf;' ]] && continue
+	[[ $line == 'ssl_certificate /etc/nginx/ssl/felicabrera/STAR.felicabrera.com.pem;' ]] && continue
+	[[ $line == 'ssl_certificate_key /etc/nginx/ssl/felicabrera/STAR.felicabrera.com.key;' ]] && continue
+	[[ $line == 'ssl_protocols TLSv1.2 TLSv1.3;' ]] && continue
+	[[ $line =~ ^ssl_ciphers\ [A-Za-z0-9:_-]+\;$ ]] && continue
+	[[ $line == 'ssl_prefer_server_ciphers off;' ]] && continue
+	[[ $line == 'ssl_session_cache shared:SSL:10m;' ]] && continue
+	[[ $line == 'ssl_session_timeout 1d;' ]] && continue
+	[[ $line == 'server_tokens off;' ]] && continue
+	[[ $line =~ ^proxy_pass\ http://10\.10\.10\.20:($PORTS)(/|/health)?\;$ ]] && continue
+	[[ $line == 'proxy_http_version 1.1;' ]] && continue
+	[[ $line =~ ^proxy_(connect|read|send)_timeout\ [0-9]+s\;$ ]] && continue
+	[[ $line =~ ^client_max_body_size\ [0-9]+m\;$ ]] && continue
+	[[ $line == 'proxy_set_header Host $host;' ]] && continue
+	[[ $line == 'proxy_set_header X-Real-IP $remote_addr;' ]] && continue
+	[[ $line == 'proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;' ]] && continue
+	[[ $line == 'proxy_set_header X-Forwarded-Proto $scheme;' ]] && continue
+	[[ $line == 'access_log off;' ]] && continue
+	[[ $line == "access_log /var/log/nginx/$DOMAIN.access.log;" ]] && continue
+	[[ $line == "error_log /var/log/nginx/$DOMAIN.error.log warn;" ]] && continue
+	[[ $line =~ ^add_header\ [A-Za-z-]+\ \"[^\"\\\'#{}\$]*\"\ always\;$ ]] && continue
+	echo "::error::rejected line $n: directive or value not allowed."
+	fail=1
+done < "$work/new.conf"
+if [ "$fail" -ne 0 ]; then
+	echo "::error::vhost failed validation, nothing was changed."
+	exit 1
+fi
+
+if [ "$depth" -ne 0 ]; then
+	echo "::error::unbalanced braces, nothing was changed."
+	exit 1
+fi
+
+if cmp -s "$work/new.conf" "$TARGET" 2> /dev/null && [ "$(readlink -f "$ENABLED" 2> /dev/null)" = "$TARGET" ]; then
+	echo "nginx vhost already matches the repository. Nothing to apply."
+	exit 0
+fi
+
+echo "Host vhost differs from the repository. Applying."
+HAD_PREVIOUS=0
+if [ -f "$TARGET" ]; then
+	HAD_PREVIOUS=1
+	cp -a "$TARGET" "$BACKUP"
+fi
+# Remember how sites-enabled looked so a failed reload restores it exactly.
+PREV_LINK=""
+[ -L "$ENABLED" ] && PREV_LINK="$(readlink "$ENABLED")"
+
+install -o root -g root -m 644 "$work/new.conf" "$TARGET"
+ln -sfn "$TARGET" "$ENABLED"
+
+if ! nginx -t; then
+	echo "::error::nginx -t failed with the new vhost, so nginx was not reloaded."
+	if [ "$HAD_PREVIOUS" = 1 ]; then
+		cp -a "$BACKUP" "$TARGET"
+		echo "Restored the previous vhost."
+	else
+		rm -f "$TARGET"
+		echo "Removed the new vhost (there was no previous one)."
+	fi
+	if [ -n "$PREV_LINK" ]; then
+		ln -sfn "$PREV_LINK" "$ENABLED"
+	else
+		rm -f "$ENABLED"
+	fi
+	nginx -t
+	exit 1
+fi
+
+systemctl reload nginx
+echo "nginx reloaded with the repository's vhost."
