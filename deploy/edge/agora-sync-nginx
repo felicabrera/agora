@@ -39,6 +39,8 @@ fi
 
 fail=0
 n=0
+depth=0
+named=0
 while IFS= read -r line || [ -n "$line" ]; do
 	n=$((n + 1))
 	line="${line//$'\t'/ }"
@@ -48,10 +50,20 @@ while IFS= read -r line || [ -n "$line" ]; do
 	[ -z "$line" ] && continue
 	[[ $line == \#* ]] && continue
 	case "$line" in
-		"server {" | "location / {" | "location /api/ {" | "location = /api/health {" | "}") continue ;;
+		"server {")
+			[ "$depth" -eq 0 ] || { echo "::error::line $n: nested server block."; fail=1; }
+			depth=1; named=0; continue ;;
+		"location / {" | "location /api/ {" | "location = /api/health {")
+			depth=$((depth + 1)); continue ;;
+		"}")
+			depth=$((depth - 1))
+			if [ "$depth" -eq 0 ] && [ "$named" -eq 0 ]; then
+				echo "::error::line $n: server block has no server_name."; fail=1
+			fi
+			continue ;;
 	esac
 	[[ $line =~ ^listen\ (\[::\]:)?(80|443)(\ ssl\ http2)?\;$ ]] && continue
-	[[ $line == "server_name $DOMAIN;" ]] && continue
+	[[ $line == "server_name $DOMAIN;" ]] && { named=1; continue; }
 	[[ $line == 'return 301 https://$host$request_uri;' ]] && continue
 	[[ $line == 'modsecurity on;' ]] && continue
 	[[ $line == 'modsecurity_rules_file /etc/nginx/modsec/main.conf;' ]] && continue
@@ -83,7 +95,12 @@ if [ "$fail" -ne 0 ]; then
 	exit 1
 fi
 
-if cmp -s "$work/new.conf" "$TARGET" 2> /dev/null; then
+if [ "$depth" -ne 0 ]; then
+	echo "::error::unbalanced braces, nothing was changed."
+	exit 1
+fi
+
+if cmp -s "$work/new.conf" "$TARGET" 2> /dev/null && [ "$(readlink -f "$ENABLED" 2> /dev/null)" = "$TARGET" ]; then
 	echo "nginx vhost already matches the repository. Nothing to apply."
 	exit 0
 fi
@@ -94,6 +111,9 @@ if [ -f "$TARGET" ]; then
 	HAD_PREVIOUS=1
 	cp -a "$TARGET" "$BACKUP"
 fi
+# Remember how sites-enabled looked so a failed reload restores it exactly.
+PREV_LINK=""
+[ -L "$ENABLED" ] && PREV_LINK="$(readlink "$ENABLED")"
 
 install -o root -g root -m 644 "$work/new.conf" "$TARGET"
 ln -sfn "$TARGET" "$ENABLED"
@@ -104,8 +124,13 @@ if ! nginx -t; then
 		cp -a "$BACKUP" "$TARGET"
 		echo "Restored the previous vhost."
 	else
-		rm -f "$ENABLED" "$TARGET"
+		rm -f "$TARGET"
 		echo "Removed the new vhost (there was no previous one)."
+	fi
+	if [ -n "$PREV_LINK" ]; then
+		ln -sfn "$PREV_LINK" "$ENABLED"
+	else
+		rm -f "$ENABLED"
 	fi
 	nginx -t
 	exit 1
