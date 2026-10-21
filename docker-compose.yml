@@ -13,9 +13,10 @@ services:
     container_name: ${CONTAINER_NAME:-agora-api}
     restart: unless-stopped
     stop_grace_period: 20s
-    # Loopback only: nginx on the host is the public entrypoint.
+    # Loopback by default; the deploy sets HOST_BIND to the apps host address so
+    # the nginx edge host can reach the container.
     ports:
-      - "127.0.0.1:${HOST_PORT:-8080}:8080"
+      - "${HOST_BIND:-127.0.0.1}:${HOST_PORT:-8080}:8080"
     environment:
       AGORA_ADDR: ":8080"
     read_only: true
