@@ -25,7 +25,7 @@ Este repositorio está en la fase inicial de desarrollo. Lo que hay hoy:
 | `crypto/elgamal` | ElGamal exponencial (aditivamente homomórfico) |
 | `crypto/zkp` | OR-proof `{0,1}` (CDS) + prueba 1-de-C (Chaum-Pedersen), Fiat-Shamir |
 | `crypto/threshold` | Shamir + descifrado por umbral con interpolación de Lagrange |
-| `cmd/agora-api` | Esqueleto del servidor: configuración, logging, `/healthz`, apagado ordenado |
+| `cmd/agora-api` | Esqueleto del servidor: configuración, logging, `/health`, apagado ordenado |
 | `cmd/agorakit` | CLI de operador: `version`, `keygen` |
 
 Pendiente, en orden de trabajo: papeleta y agregación (`crypto/ballot`, `crypto/tally`),
@@ -62,7 +62,7 @@ $ ./bin/agorakit keygen --authorities 5 --threshold 3
 
 # Levanta el esqueleto de la API:
 $ ./bin/agora-api
-$ curl localhost:8080/healthz
+$ curl localhost:8080/health
 ```
 
 `make help` lista el resto de los targets.
